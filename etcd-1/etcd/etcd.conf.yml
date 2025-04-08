@@ -1,9 +1,10 @@
 name: '${NODE_NAME}'
-data-dir: '/var/lib/etcd'
-initial-advertise-peer-urls: 'http://${NODE_IP}:2380'
-listen-peer-urls: 'http://0.0.0.0:2380'
-advertise-client-urls: 'http://${NODE_IP}:2379'
+data-dir: '/var/lib/etcd' # zde si ukládá data
+initial-advertise-peer-urls: 'http://${NODE_IP}:2380' # adresa na které bude etcd dostupné pro ostatní servery
+listen-peer-urls: 'http://0.0.0.0:2380' # adresa na které bude etcd naslouchat
+advertise-client-urls: 'http://${NODE_IP}:2379' # adresa na které bude etcd dostupné pro klienty
 listen-client-urls: 'http://0.0.0.0:2379'
-initial-cluster: '${CLUSTER}'
-initial-cluster-state: 'new'
-initial-cluster-token: 'etcd-cluster'
+# CLUSTER = ${NAME_1}=http://${HOST_1}:2380,${NAME_2}=http://${HOST_2}:2380,${NAME_3}=http://${HOST_3}:2380
+initial-cluster: '${CLUSTER}' # seznam všech serverů v clusteru 
+initial-cluster-state: 'new' # stav clusteru, new pokud je to první server
+initial-cluster-token: 'etcd-cluster' # token pro identifikaci clusteru

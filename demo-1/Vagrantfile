@@ -7,13 +7,15 @@
 VAGRANTFILE_API_VERSION = "2"
 # set docker as the default provider
 ENV['VAGRANT_DEFAULT_PROVIDER'] = 'docker'
-# disable parallellism so that the containers come up in order
+# disable parallellism so that the containers come up in order (better debugging)
 ENV['VAGRANT_NO_PARALLEL'] = "1"
 ENV['FORWARD_DOCKER_PORTS'] = "1"
 
 ENV['DOCKER_CONTEXT'] = "default"
+# if not visible in docker desktop try to set the context to desktop-linux
 #ENV['DOCKER_CONTEXT'] = "desktop-linux"
 
+# Check if the vagrant-docker-compose plugin is installed
 unless Vagrant.has_plugin?("vagrant-docker-compose")
   system("vagrant plugin install vagrant-docker-compose")
   puts "Dependencies installed, please try the command again."
@@ -23,9 +25,10 @@ end
 # Vagrant common configuration
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   #config.vm.synced_folder ".", "/vagrant", type: "rsync", rsync__exclude: ".*/"
+
   config.ssh.insert_key = false
   
-# Definition of node1
+  # Definition of node1
   config.vm.define "node1" do |s|
     s.vm.network "private_network", ip: "10.0.1.11"
     s.vm.hostname = "node1"

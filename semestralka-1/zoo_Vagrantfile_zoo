@@ -1,0 +1,62 @@
+# Vagrantfile for a minimal distributed color-assignment demo
+VAGRANTFILE_API_VERSION = "2"
+
+# Customize these as you wish:
+NODES_COUNT  = 6       # total # of client nodes
+COLOR_RATIO  = 0.5     # fraction that should be green
+
+# Force Docker as the default Vagrant provider:
+ENV['VAGRANT_DEFAULT_PROVIDER'] = "docker"
+# Run containers in sequence rather than in parallel (optional):
+ENV['VAGRANT_NO_PARALLEL']      = "1"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  # Prevent automatic folder mounting:
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+
+  #
+  # 1) Define ZooKeeper container
+  #
+  config.vm.define "zoonode", primary: true do |s|
+    s.vm.provider "docker" do |d|
+      d.image = "zookeeper:3.7"
+      d.name  = "zoonode"
+      # By default, official zookeeper image runs ZK on port 2181 in foreground.
+      # We'll let it run with the default CMD or:
+      d.cmd = ["bash", "-c", "bin/zkServer.sh start-foreground"]
+      d.has_ssh = false
+       # Give it a network alias "zoonode" so that it is reachable at hostname "zoonode"
+       d.create_args = [
+        "--network=colors-net",          # use the custom network
+        "--network-alias=zoonode"        # DNS alias = "zoonode"
+      ]
+    end
+  end
+
+  #
+  # 2) Define multiple client containers
+  #
+  (1..NODES_COUNT).each do |i|
+    node_name = "client-#{i}"
+    config.vm.define node_name do |s|
+      s.vm.provider "docker" do |d|
+        # Build from our local Dockerfile in ./client:
+        d.build_dir = "./client"
+        d.name      = node_name
+        d.has_ssh   = false
+         # Give it a network alias "zoonode" so that it is reachable at hostname "zoonode"
+        d.create_args = [
+            "--network=colors-net",          # use the custom network
+        ]
+        # Environment variables to pass into the container:
+        d.env = {
+          "ZOO_SERVERS"  => "zoonode:2181",   # how to connect to ZooKeeper
+          "NODE_NAME"    => node_name,
+          "TOTAL_NODES"  => NODES_COUNT.to_s,
+          "COLOR_RATIO"  => COLOR_RATIO.to_s
+        }
+      end
+    end
+  end
+
+end

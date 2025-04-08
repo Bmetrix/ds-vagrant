@@ -16,7 +16,8 @@ def watch_handler(event):
   print("Received watch event.")
   pp.pprint(event)
   # Get the current list of node children and set the watch again, because their are one-time triggers
-  children = zk.get_children("/ds/clients", watch=watch_handler)
+  # watch je vzdy jen jednorazový trigger
+  children = zk.get_children("/dsa/clients", watch=watch_handler)
   pp.pprint(children)
 
 def main():
@@ -29,10 +30,16 @@ def main():
   zk.start()
 
   # Ensure the clients context path exists
-  zk.create("/ds/clients", makepath=True)
+  zk.create("/dsa/clients", makepath=True)
   # Get the list of child nodes and set the one-time watch handler
-  children = zk.get_children("/ds/clients", watch=watch_handler)
+  children = zk.get_children("/dsa/clients", watch=watch_handler)
   pp.pprint(children)
+
+  # pro leader election tato cast kodu (musi se ale odkomentovat i odpovidajici cast codu v zk-client-2.py)
+  # children.sort()
+  # print(f"Current children: { children }.")
+  # if len(children) > 0:
+  #   print(f"Master is: { children[0] }.")
 
   # Sleep for 5 min.
   sleep(300)

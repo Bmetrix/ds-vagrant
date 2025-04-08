@@ -6,7 +6,6 @@ The aim of this demo is to show how to:
 * how to create configuration files using a [Ruby](http://rubylearning.com/satishtalim/tutorial.html) script
 
 ## Deployment diagram
-
 ![Demo 3 deployment diagram](images/demo-3-deployment.png)
 
 *Figure 1: Deployment diagram of Demo 3*

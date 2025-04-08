@@ -7,6 +7,7 @@ VAGRANTFILE_API_VERSION = "2"
 # set docker as the default provider
 ENV['VAGRANT_DEFAULT_PROVIDER'] = 'docker'
 # disable parallellism so that the containers come up in order
+# no parallel because we also have hack d.env = { "STARTUP_DELAY": "60" } so that frontend waits for backend
 ENV['VAGRANT_NO_PARALLEL'] = "1"
 ENV['FORWARD_DOCKER_PORTS'] = "1"
 # minor hack enabling to run the image and configuration trigger just once
@@ -44,18 +45,30 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.trigger.before :up, type: :command do |trigger|
     trigger.name = "Build docker images and configuration files"
     trigger.ruby do |env, machine|
+
       # --- start of Ruby script ---
       # Build load balancer configuration file:
       puts "Building frontend LB configuration."
+
+      # if config file exists delete it
       File.delete(FRONTEND[:lb_config_file]) if File.exist?(FRONTEND[:lb_config_file])
+
+      # create new config file
       cfile = File.new(FRONTEND[:lb_config_file], "w")
-      cfile.puts "upstream #{FRONTEND[:lb_name]} {"
+
+      cfile.puts "upstream #{FRONTEND[:lb_name]} {" # result: upstream backend-lb {
+
+      # add backend nodes to the configuration
       (1..BACKENDS_COUNT).each do |i|
-        node_name = "#{BACKENDS[:nameprefix]}#{i}"
-        cfile.puts "    server #{node_name}:#{BACKENDS[:port]} weight=1;"
-      end
+        node_name = "#{BACKENDS[:nameprefix]}#{i}" # result: backend-1, backend-2, etc.
+        cfile.puts "    server #{node_name}:#{BACKENDS[:port]} weight=1;" # result: server backend-1:5000 weight=1;
+      end 
+
       cfile.puts "}"
       cfile.close
+
+      # NOTE: at the end we got: upstream backend-lb { server backend-1:5000 weight=1; server backend-2:5000 weight=1; server backend-3:5000 weight=1; } 
+
       # Build image for backend nodes:
       puts "Building backend node image:"
       `docker build backend -t "#{BACKEND_IMAGE}"`

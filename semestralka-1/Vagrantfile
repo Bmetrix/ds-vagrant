@@ -1,0 +1,45 @@
+# Vagrantfile
+# Spawns N containers. Each container:
+#  - Joins a user-defined Docker network called "colors-net"
+#  - Runs the color-broadcast.py script at startup
+#  - Uses broadcast to discover other containers' IP addresses
+#  - Decides green/red by IP-based ordering
+
+VAGRANTFILE_API_VERSION = "2"
+
+# We can configure how many nodes and what ratio we want
+NODES_COUNT = 6       # total number of containers
+COLOR_RATIO = 0.5     # fraction that should be "green"
+
+# Force Docker provider in Vagrant
+ENV['VAGRANT_DEFAULT_PROVIDER'] = "docker"
+ENV['VAGRANT_NO_PARALLEL']      = "1"   # run containers sequentially (optional)
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+
+  # Now define N containers
+  (1..NODES_COUNT).each do |i|
+
+    node_name = "client-#{i}"
+
+    config.vm.define node_name do |s|
+
+      s.vm.provider "docker" do |d|
+        d.build_dir = "./client"
+        d.name      = node_name
+        d.has_ssh   = false
+
+        # Pass environment variables for ratio, node_name, etc.
+        d.env = {
+          "NODE_NAME"       => node_name,
+          "COLOR_RATIO"     => COLOR_RATIO.to_s,
+          # how long to gather addresses, in seconds
+          "DISCOVERY_TIME"  => "50",
+          "NODE_IP"         => "172.20.0.#{i+1}"
+        }
+      end
+    end
+  end
+end

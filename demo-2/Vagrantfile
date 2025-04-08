@@ -30,8 +30,8 @@ FRONTEND  = { :name => "frontend", :ipaddr => "10.0.1.12", :image => FRONTEND_IM
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.synced_folder ".", "/vagrant", type: "rsync", rsync__exclude: ".*/"
-  config.ssh.insert_key = false
-  
+  config.ssh.insert_key = false 
+
   # Definition of BACKEND
   config.vm.define BACKEND[:name] do |s|
     s.vm.network "private_network", ip: BACKEND[:ipaddr]
@@ -58,7 +58,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       d.has_ssh = true
       d.env = { "STARTUP_DELAY": "60" } # minor hack to ensure backend is already running when the frontend wakes up
     end
-    s.vm.post_up_message = "Node #{FRONTEND[:name]} up and running. You can access the service at http://localhost:8080/service/api/find/<service>"
+    s.vm.post_up_message = "Node #{FRONTEND[:name]} up and running. You can access the service at http://localhost:8080/service-api/find/<service>"
   end
 
 end

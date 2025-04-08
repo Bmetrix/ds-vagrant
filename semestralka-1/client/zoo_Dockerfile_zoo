@@ -1,0 +1,12 @@
+# A minimal Python image that installs 'kazoo'
+FROM python:3.9-slim
+
+# Install kazoo library
+RUN pip install --no-cache-dir kazoo
+
+# Copy our color assignment script into the container
+COPY python/color-client.py /opt/color-client.py
+RUN chmod +x /opt/color-client.py
+
+# By default, run the color-client script on container startup:
+CMD [ "python", "/opt/color-client.py" ]
