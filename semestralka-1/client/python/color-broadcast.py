@@ -4,7 +4,7 @@ color-broadcast.py
 
 Simple approach to color assignment without ZooKeeper or a coordinator:
 1) Each node broadcasts "HELLO <ip>" on UDP port 9999.
-2) Each node listens for others' broadcasts for DISCOVERY_TIME seconds.
+2) Each node listens for others' broadcasts until all expected nodes are discovered.
 3) Sort the IP list. The first floor(k*N) => 'green', the rest => 'red'.
 """
 
@@ -32,12 +32,13 @@ def main():
     node_name      = os.environ.get("NODE_NAME", "client-???")
     color_ratio    = float(os.environ.get("COLOR_RATIO", "0.5"))
     discovery_time = int(os.environ.get("DISCOVERY_TIME", "5"))
+    nodes_count    = int(os.environ.get("NODES_COUNT", "1"))
 
     # Attempt to find our own IP:
     # (In Docker, gethostname() might give container's internal hostname, which
     #  hopefully resolves to an IP on the colors-net network.)
     my_ip = socket.gethostbyname(socket.gethostname())
-    print(f"[{node_name}] My IP is {my_ip}, ratio={color_ratio}, discoveryTime={discovery_time}")
+    print(f"[{node_name}] My IP is {my_ip}, ratio={color_ratio}, discoveryTime={discovery_time}, expectedNodes={nodes_count}")
 
     # 1) Start the broadcast thread
     th = threading.Thread(target=broadcast_loop, args=(my_ip,), daemon=True)
@@ -54,18 +55,28 @@ def main():
     sock.bind(('', BROADCAST_PORT))
 
     print(f"[{node_name}] Listening for UDP broadcasts on port {BROADCAST_PORT}...")
+    print(f"[{node_name}] Waiting to discover all {nodes_count} nodes...")
 
+    # Continue listening until we've discovered all expected nodes
+    # or until the discovery timeout is reached
     start_time = time.time()
-    while time.time() - start_time < discovery_time:
+    while len(discovered) < nodes_count and (time.time() - start_time < discovery_time):
         sock.settimeout(1.0)  # check once per second
         try:
             data, addr = sock.recvfrom(1024)
             msg = data.decode('utf-8', errors='ignore').strip()
             if msg.startswith("HELLO "):
                 ip = msg.split(" ", 1)[1]
-                discovered.add(ip)
+                if ip not in discovered:
+                    discovered.add(ip)
+                    print(f"[{node_name}] Discovered node with IP: {ip} ({len(discovered)}/{nodes_count})")
         except socket.timeout:
             pass
+
+    if len(discovered) < nodes_count:
+        print(f"[{node_name}] Warning: Discovery time elapsed, but only found {len(discovered)}/{nodes_count} nodes.")
+    else:
+        print(f"[{node_name}] Successfully discovered all {nodes_count} nodes.")
 
     # 3) Now we have a set of discovered IPs
     all_ips = sorted(discovered)
@@ -85,5 +96,4 @@ def main():
     time.sleep(300)
 
 if __name__ == "__main__":
-
     main()

@@ -36,8 +36,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
           "NODE_NAME"       => node_name,
           "COLOR_RATIO"     => COLOR_RATIO.to_s,
           # how long to gather addresses, in seconds
-          "DISCOVERY_TIME"  => "50",
-          "NODE_IP"         => "172.20.0.#{i+1}"
+          "DISCOVERY_TIME"  => "5000",
+          "NODE_IP"         => "172.20.0.#{i+1}",
+          "NODES_COUNT"     => NODES_COUNT.to_s
         }
       end
     end
